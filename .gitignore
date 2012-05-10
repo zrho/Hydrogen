@@ -1,0 +1,7 @@
+build/*
+loader/build/*
+image/build/*
+test/build/*
+bochsout.txt
+.project
+.cproject
