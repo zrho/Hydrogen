@@ -32,17 +32,17 @@ memory from that mark to 0x108000 is occupied by Hydrogen's code and data that
 can be reclaimed after the kernel has been loaded. The system and info
 structures begin on 0x108000:
 
-0x108000-0x109000: The Interrupt Descriptor Table (256 entries, 16 bytes each).
-0x109000-0x10A000: The Global Descriptor Table (256 entries, 16 bytes each).
-0x10A000-0x10B000: The boot Page Model Level 4 (PML4).
-0x10B000-0x10C000: The root info table (hy_info_root_t).
-0x10C000-0x10D000: The CPU info table (hy_info_cpu_t).
-0x10D000-0x10E000: The IO APIC info table (hy_info_ioapic_t).
-0x10E000-0x10F000: The memory map info table (hy_info_mmap_t).
-0x10F000-0x110000: The module info table (hy_info_module_t).
-0x110000-0x111000: The string table.
-0x111000-0x112000: The PDP for identity mapping.
-0x112000-0x152000: The 64 PDs for identity mapping.
+0x108000-0x109000: The Interrupt Descriptor Table (256 entries, 16 bytes each).<br />
+0x109000-0x10A000: The Global Descriptor Table (256 entries, 16 bytes each).<br />
+0x10A000-0x10B000: The boot Page Model Level 4 (PML4).<br />
+0x10B000-0x10C000: The root info table (hy_info_root_t).<br />
+0x10C000-0x10D000: The CPU info table (hy_info_cpu_t).<br />
+0x10D000-0x10E000: The IO APIC info table (hy_info_ioapic_t).<br />
+0x10E000-0x10F000: The memory map info table (hy_info_mmap_t).<br />
+0x10F000-0x110000: The module info table (hy_info_module_t).<br />
+0x110000-0x111000: The string table.<br />
+0x111000-0x112000: The PDP for identity mapping.<br />
+0x112000-0x152000: The 64 PDs for identity mapping.<br />
 
 After 0x152000 Hydrogen places dynamically allocated structures, such as the
 kernel code, the data loaded from the binary and the paging structures for mapping
@@ -89,10 +89,10 @@ The 2nd to 5th entries are configured to be code/data segments with a base of
 0x0 and a limit of 0xFFFFFFFFFFFFFFFF (flat memory model) in long mode and differ
 as follows:
 
-0x08: Kernel Code (DPL 0)
-0x10: Kernel Data (DPL 0)
-0x18: User Code (DPL 3)
-0x20: User Data (DPL 3) 
+0x08: Kernel Code (DPL 0)<br />
+0x10: Kernel Data (DPL 0)<br />
+0x18: User Code (DPL 3)<br />
+0x20: User Data (DPL 3)<br />
 
 ### §4.4 Syscall MSRs
 The syscall related MSRs are configured as follows: The STAR register specifies
