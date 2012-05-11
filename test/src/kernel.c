@@ -32,16 +32,9 @@
 #include <ui.h>
 
 #include <lapic.h>
+#include <screen.h>
 
 uint64_t pit_ticks = 0;
-
-static void pit_handler(isr_state_t *state)
-{
-    char buffer[17];
-    buffer_write_hex(++pit_ticks, (char *) &buffer);
-    screen_write((char *) &buffer, 50, 24);
-    lapic_eoi();
-}
 
 static char *build_overview(char *buffer)
 {
@@ -52,6 +45,15 @@ static char *build_overview(char *buffer)
 
     BSTR("Welcome to the H2 Test Utility.\n");
     BSTR("Use LEFT and RIGHT to switch between pages, and UP and DOWN to scroll.\n\n");
+
+    bool pic = (0 != (root->flags & HY_INFO_FLAG_PCAT_COMPAT));
+    bool x2apic = (0 != (root->flags & HY_INFO_FLAG_X2APIC));
+
+    BSTR("8259 PIC present:   ");
+    BSTR(pic ? "Yes" : "No");
+    BSTR("\nx2APIC present:     ");
+    BSTR(x2apic ? "Yes" : "No");
+    BSTR("\n\n");
 
     BSTR("LAPIC MMIO:         ");
     BNUM(root->lapic_paddr);
@@ -155,10 +157,22 @@ static char *build_modules(char *buffer)
     return buffer;
 }
 
+static void fault_gp(isr_state_t *state)
+{
+    char buffer_data[50];
+    char *buffer = (char *) &buffer_data;
+    buffer = buffer_write("INT#", buffer);
+    buffer = buffer_write_hex(state->vector, buffer);
+    screen_write(buffer, 10, 20);
+}
+
 void kmain_bsp(void);
 void kmain_bsp(void)
 {
-    isr_handlers[0x20] = (uintptr_t) &pit_handler;
+    size_t i = 0;
+    for (i = 0; i < 256; ++i) {
+        isr_handlers[i] = (uintptr_t) &fault_gp;
+    }
     isr_handlers[KEYBOARD_IRQ_VECTOR] = (uintptr_t) &keyboard_handler;
 
     char *buffer = (char *) HY_INFO_ROOT->free_paddr;

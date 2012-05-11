@@ -26,14 +26,18 @@
 #pragma once
 #include <stdint.h>
 
-#define LAPIC_REG_ID            0x020   //< LAPIC ID
-#define LAPIC_REG_EOI           0x0B0   //< End of Interrupt
-#define LAPIC_REG_ICR_LOW       0x300   //< Interrupt Command Register (lower DWORD)
-#define LAPIC_REG_ICR_HIGH      0x310   //< Interrupt Command Register (upper DWORD)
-#define LAPIC_REG_TIMER         0x320   //< Local: Timer
-#define LAPIC_REG_TIMER_INIT    0x380   //< Timer: Initial Count
-#define LAPIC_REG_TIMER_CUR     0x390   //< Timer: Current Count
-#define LAPIC_REG_TIMER_DIV     0x3E0   //< Timer: Divisor
+// register indices
+#define LAPIC_REG_ID            0x02    //< LAPIC ID
+#define LAPIC_REG_EOI           0x0B    //< End of Interrupt
+#define LAPIC_REG_ICR_LOW       0x30    //< Interrupt Command Register (lower DWORD)
+#define LAPIC_REG_ICR_HIGH      0x31    //< Interrupt Command Register (upper DWORD)
+#define LAPIC_REG_TIMER         0x32    //< Local: Timer
+#define LAPIC_REG_TIMER_INIT    0x38    //< Timer: Initial Count
+#define LAPIC_REG_TIMER_CUR     0x39    //< Timer: Current Count
+#define LAPIC_REG_TIMER_DIV     0x3E    //< Timer: Divisor
+
+// x2APIC related
+#define LAPIC_MSR_REGS          0x800
 
 #define lapic_id() lapic_register_read(LAPIC_REG_ID)
 #define lapic_eoi() lapic_register_write(LAPIC_REG_EOI, 0)
@@ -52,15 +56,10 @@ uint32_t lapic_register_read(uint16_t index);
 /**
  * Writes a <value> to a register of the CPU's LAPIC, given its <index>.
  *
- * Returns the previous value of the register, as reading the value is
- * required nevertheless, because some LAPIC implementations only allow a
- * register to be written directly after it has been read.
- *
  * Uses the LAPIC address stored in the info tables.
  * Behavior is undefined when called for an invalid register.
  *
  * @param index the index of the register to write
  * @param value the new value of the register
- * @return the old value of the register
  */
-uint32_t lapic_register_write(uint16_t index, uint32_t value);
+void lapic_register_write(uint16_t index, uint32_t value);

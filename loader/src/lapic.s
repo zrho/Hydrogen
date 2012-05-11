@@ -28,7 +28,6 @@ global lapic_timer_calibrate_worker
 global lapic_timer_calibrate_handler
 global lapic_timer_wait_handler
 global lapic_timer_wait_worker
-extern lapic_timer_wait_barrier
 extern lapic_timer_update
 extern lapic_register_read
 extern lapic_eoi
@@ -95,7 +94,7 @@ lapic_timer_calibrate_handler:
 
 .phase_second:							; Second phase
 	push rdx
-	mov rdi, 0x390						; Current timer count
+	mov rdi, 0x39						; Current timer count
 	call lapic_register_read
 	pop rdx
 
@@ -118,17 +117,20 @@ lapic_timer_calibrate_handler:
 	sti                                 ; Enable interrupts
 	iretq								; Return from ISR
 
-; Enables interrupts, waits for the lapic_timer_wait_barrier, then disables interrupts again.
+; Enables interrupts, waits for a barrier, then disables interrupts again.
 lapic_timer_wait_worker:
+    xor r15, r15            ; Barrier in R15
+
     sti
 .wait:
-    cmp qword [lapic_timer_wait_barrier], 1
+    cmp r15, 1
     jne .wait
+
     cli
     ret
 
 ; ISR for lapic_timer_wait that sets the lapic_timer_wait_barrier on IRQ.
 lapic_timer_wait_handler:
-    mov byte [lapic_timer_wait_barrier], 1
     call lapic_eoi
+    mov r15, 1
     iretq

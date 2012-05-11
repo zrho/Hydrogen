@@ -39,12 +39,23 @@ void pit_freq_set(uint16_t freq)
     outb(PIT_IO_COUNTER, divisor >> 8);
 }
 
-void pit_route(void)
+static void pit_set_redir(uint64_t redir)
 {
-    uint64_t redir = PIT_VECTOR | ((uint64_t) lapic_id() << IOAPIC_REDIR_DEST);
     uint8_t irq = (0 == (info_root->flags & HY_INFO_FLAG_PCAT_COMPAT)) ? PIT_IRQ : PIT_IRQ_PCAT_COMPAT;
     uint32_t gsi = info_root->irq_gsi[irq];
     hy_info_ioapic_t *ioapic = ioapic_get_by_gsi(gsi);
     uint32_t index = gsi - ioapic->gsi_base;
     ioapic_redir_set(index, redir, ioapic);
+}
+
+void pit_route(void)
+{
+    uint64_t redir = PIT_VECTOR | ((uint64_t) lapic_id() << IOAPIC_REDIR_DEST);
+    pit_set_redir(redir);
+}
+
+void pit_mask(void)
+{
+    uint64_t redir = (1 << IOAPIC_REDIR_MASK);
+    pit_set_redir(redir);
 }

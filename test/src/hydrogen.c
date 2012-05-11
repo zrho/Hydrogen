@@ -27,9 +27,13 @@
 #include <isr.h>
 #include <keyboard.h>
 
+#define FLAGS                          (    \
+    HY_HEADER_FLAG_IOAPIC_BSP           |    \
+    HY_HEADER_FLAG_X2APIC_ALLOW         )
+
 hy_header_root_t hydrogen_header = {
         HY_MAGIC,                               // magic
-        HY_HEADER_FLAG_IOAPIC_BSP,              // flags
+        FLAGS,                                  // flags
         0xFFFFFF0000200000,                     // stack_vaddr
         0xFFFFFF0000100000,                     // info_vaddr
         0,                                      // ap_entry

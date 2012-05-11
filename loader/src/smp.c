@@ -36,7 +36,7 @@ volatile uint64_t smp_ready_count;
 static void smp_boot(hy_info_cpu_t *cpu)
 {
     // Send INIT IPI
-    lapic_ipi(LAPIC_IPI_INIT(cpu->apic_id));
+    lapic_ipi(LAPIC_IPI_INIT, cpu->apic_id);
 
     // Wait a moment (10ms)
     lapic_timer_wait(10 * 1000);
@@ -45,7 +45,7 @@ static void smp_boot(hy_info_cpu_t *cpu)
     uint64_t ready_new = smp_ready_count + 1;
 
     // Send STARTUP IPI
-    lapic_ipi(LAPIC_IPI_STARTUP(cpu->apic_id, 0x1000));
+    lapic_ipi(LAPIC_IPI_STARTUP(0x1000), cpu->apic_id);
 
     // Wait for the AP to become ready
     while (ready_new != smp_ready_count);

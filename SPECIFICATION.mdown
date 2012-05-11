@@ -1,4 +1,4 @@
-Hydrogen Specification 0.2b
+Hydrogen Specification 0.2.1b
 ================================================================================
 
 §0 About This Document
@@ -102,12 +102,20 @@ The CSTAR register is fixed to zero and the LSTAR register is set to the value
 given in the kernel header (see §6.4).
 
 ### §4.5 LAPIC State
-The LAPIC of each CPU is enabled (enable bit set in SVR) and has a spurious
-interrupt vector of 0x20. The LINT0 pin is configured to ExtINT delivery with
-level trigger, the LINT1 pin is configured to NMI delivery with edge trigger.
-The performance counter and error interrupt is masked. The task priority
-register (TPR) is cleared (zero) and the logical destination register (LDR)
-is set individually for each CPU to the result of (1 << (APIC ID % 8)).
+When Hydrogen detects that the BSP's LAPIC supports the x2APIC mode, it will
+assume it is supported on all LAPICs installed into the system. When the kernel
+supports the x2APIC (see §6.8) and it is present, the LAPICs are initialized in
+x2APIC mode, otherwise they stay in xAPIC compatibility mode. When the kernel
+requires the x2APIC, but the system does not support it, Hydrogen will panic. 
+
+In both cases (xAPIC and x2APIC) the LAPIC of each CPU is enabled (enable bit
+set in SVR) and has a spurious interrupt vector of 0x20. The LINT0 pin is
+configured to ExtINT delivery with level trigger, the LINT1 pin is configured
+to NMI delivery with edge trigger. The performance counter and error interrupt
+is masked. The task priority register (TPR) is cleared (zero).
+
+In xAPIC mode the the logical destination register (LDR) is set individually for
+each CPU to the result of (1 << (APIC ID % 8)).
 
 ### §4.6 IO APIC State
 All IO APIC redirections that correspond to an ISA IRQ are configured to be
@@ -145,6 +153,12 @@ including non-present entries, the cpu_count_active field contains the number
 of present entries in this table. For each CPU the APIC id and the ACPI id
 is specified in additional to some flags and the frequency of ticks in the
 CPU's LAPIC timer (in Hz for an divisor of 1).
+
+Additionally topology information is given for each CPU: The NUMA domain
+(system locality) the CPU belongs to, the number of the chip in the domain,
+the number of the core in the chip and the number of the logical CPU in the
+core (see Simultaneous Multithreading or Intel's Hyperthreading). As of this
+release (0.2.1b), these fields are cleared to zero.
 
 ### §5.3 IO APIC Info Table
 The IO APIC info table is a list of IO APIC structures (hy_info_ioapic_t).
@@ -224,6 +238,12 @@ the IO APICs accordingly (see §4.6 on IO APIC state).
 When the kernel header sets the HY_HEADER_FLAG_IOAPIC_BSP flag, the IO APICs
 will be configured to deliver their IRQs directly to the BSP instead of using
 the lowest priority delivery mode for all CPUs (see §4.6 on IO APIC state). 
+
+### §6.8 x2APIC Flags
+Using the HY_HEADER_FLAG_X2APIC_ALLOW the kernel supports x2APIC mode and
+Hydrogen will enable it on all LAPICs, if it is supported by the system. If
+both HY_HEADER_FLAG_X2APIC_ALLOW and HY_HEADER_FLAG_X2APIC_REQUIRE are set,
+Hydrogen will panic, if x2APIC mode is not supported on the system.
 
 §7 System Requirements
 ----------------------------------------------------------------------------------

@@ -27,7 +27,20 @@
 #include <idt.h>
 #include <info.h>
 #include <kernel.h>
+#include <screen.h>
 #include <stdint.h>
+
+static void idt_fault_pf(void)
+{
+    asm volatile ("cli");
+    SCREEN_PANIC("Page fault.");
+}
+
+static void idt_fault_gp(void)
+{
+    asm volatile ("cli");
+    SCREEN_PANIC("General Protection fault.");
+}
 
 void idt_load(uintptr_t address, size_t length)
 {
@@ -51,6 +64,14 @@ void idt_intgate(idt_entry_t *entry, uintptr_t handler, uint16_t cs, uint8_t dpl
     entry->zero = 0;
 }
 
+void idt_setup_loader(void)
+{
+    size_t i;
+    for (i = 0; i < IDT_MAX; ++i) {
+        idt_intgate(&idt_data[i], (uintptr_t) &idt_null_handler, 0x8, 0x0);
+    }
+}
+
 void idt_setup_kernel(void)
 {
     bool present = (0 != kernel_header->isr_entry_table);
@@ -61,4 +82,7 @@ void idt_setup_kernel(void)
         uint64_t handler = (present ? table[i] : 0);
         idt_intgate(&idt_data[i], handler, 0x8, 0x0);
     }
+
+    idt_intgate(&idt_data[14], (uintptr_t) &idt_fault_pf, 0x8, 0x0);
+    idt_intgate(&idt_data[13], (uintptr_t) &idt_fault_gp, 0x8, 0x0);
 }

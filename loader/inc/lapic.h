@@ -28,22 +28,31 @@
 #include <stdint.h>
 
 // LAPIC register indices
-#define LAPIC_REG_ID            0x020   //< LAPIC ID
-#define LAPIC_REG_VERSION       0x030   //< LAPIC version
-#define LAPIC_REG_TPR           0x080   //< Task Priority Register
-#define LAPIC_REG_EOI           0x0B0   //< End of Interrupt
-#define LAPIC_REG_LDR           0x0D0   //< Logical Destination Register
-#define LAPIC_REG_SVR           0x0F0   //< Spurious Vector Register
-#define LAPIC_REG_ICR_LOW       0x300   //< Interrupt Command Register (lower DWORD)
-#define LAPIC_REG_ICR_HIGH      0x310   //< Interrupt Command Register (upper DWORD)
-#define LAPIC_REG_TIMER         0x320   //< Local: Timer
-#define LAPIC_REG_PCINT         0x340   //< Local: Performance Counter
-#define LAPIC_REG_LINT0         0x350   //< Local: LINT0 Pin (Normal)
-#define LAPIC_REG_LINT1         0x360   //< Local: LINT1 Pin (NMI)
-#define LAPIC_REG_ERRINT        0x370   //< Local: Error Interrupt
-#define LAPIC_REG_TIMER_INIT    0x380   //< Timer: Initial Count
-#define LAPIC_REG_TIMER_CUR     0x390   //< Timer: Current Count
-#define LAPIC_REG_TIMER_DIV     0x3E0   //< Timer: Divisor
+#define LAPIC_REG_ID            0x02    //< LAPIC ID
+#define LAPIC_REG_VERSION       0x03    //< LAPIC version
+#define LAPIC_REG_TPR           0x08    //< Task Priority Register
+#define LAPIC_REG_EOI           0x0B    //< End of Interrupt
+#define LAPIC_REG_LDR           0x0D    //< Logical Destination Register
+#define LAPIC_REG_SVR           0x0F    //< Spurious Vector Register
+#define LAPIC_REG_ICR_X2APIC    0x30    //< Interrupt Command Register (QWORD, x2APIC)
+#define LAPIC_REG_ICR_LOW       0x30    //< Interrupt Command Register (lower DWORD)
+#define LAPIC_REG_ICR_HIGH      0x31    //< Interrupt Command Register (upper DWORD)
+#define LAPIC_REG_TIMER         0x32    //< Local: Timer
+#define LAPIC_REG_PCINT         0x34    //< Local: Performance Counter
+#define LAPIC_REG_LINT0         0x35    //< Local: LINT0 Pin (Normal)
+#define LAPIC_REG_LINT1         0x36    //< Local: LINT1 Pin (NMI)
+#define LAPIC_REG_ERRINT        0x37    //< Local: Error Interrupt
+#define LAPIC_REG_TIMER_INIT    0x38    //< Timer: Initial Count
+#define LAPIC_REG_TIMER_CUR     0x39    //< Timer: Current Count
+#define LAPIC_REG_TIMER_DIV     0x3E    //< Timer: Divisor
+
+// LAPIC MSRs
+#define LAPIC_MSR_BASE          0x01B
+#define LAPIC_MSR_REGS          0x800
+
+// LAPIC Base MSR
+#define LAPIC_MSR_BASE_EN       (1 << 11)
+#define LAPIC_MSR_BASE_EXTD     (1 << 10)
 
 // Interrupt Command Register structure
 #define LAPIC_ICR_VECTOR        0
@@ -70,22 +79,20 @@
 #define LAPIC_LDR               (1 << (lapic_id() % 8))
 
 // INIT IPI
-#define LAPIC_IPI_INIT(id)                             ( \
+#define LAPIC_IPI_INIT                                 ( \
         (APIC_DELIVERY_INIT    << LAPIC_ICR_DVL_MODE)   | \
         (APIC_SHORT_NONE       << LAPIC_ICR_SHORTHAND)  | \
         (APIC_TRIGGER_EDGE     << LAPIC_ICR_TRIGGER)    | \
         (APIC_LEVEL_ASSERT     << LAPIC_ICR_LEVEL)      | \
-        (APIC_MODE_PHYSICAL    << LAPIC_ICR_DEST_MODE)  | \
-        ((uint64_t) id         << LAPIC_ICR_DEST)       )
+        (APIC_MODE_PHYSICAL    << LAPIC_ICR_DEST_MODE)  )
 
 // STARTUP IPI
-#define LAPIC_IPI_STARTUP(id, entry_point)             ( \
+#define LAPIC_IPI_STARTUP(entry_point)                 ( \
         (APIC_DELIVERY_STARTUP << LAPIC_ICR_DVL_MODE)   | \
         (APIC_SHORT_NONE       << LAPIC_ICR_SHORTHAND)  | \
         (APIC_TRIGGER_EDGE     << LAPIC_ICR_TRIGGER)    | \
         (APIC_LEVEL_ASSERT     << LAPIC_ICR_LEVEL)      | \
         (APIC_MODE_PHYSICAL    << LAPIC_ICR_DEST_MODE)  | \
-        ((uint64_t) id         << LAPIC_ICR_DEST)       | \
         ((entry_point >> 12)   << LAPIC_ICR_VECTOR)     )
 
 /**
@@ -102,18 +109,27 @@ uint32_t lapic_register_read(uint16_t index);
 /**
  * Writes a <value> to a register of the CPU's LAPIC, given its <index>.
  *
- * Returns the previous value of the register, as reading the value is
- * required nevertheless, because some LAPIC implementations only allow a
- * register to be written directly after it has been read.
- *
  * Uses the LAPIC address stored in the info tables.
  * Behavior is undefined when called for an invalid register.
  *
  * @param index the index of the register to write
  * @param value the new value of the register
- * @return the old value of the register
  */
-uint32_t lapic_register_write(uint16_t index, uint32_t value);
+void lapic_register_write(uint16_t index, uint32_t value);
+
+/**
+ * Detects the CPU's APIC capabilities (x2APIC/xAPIC).
+ *
+ * Sets the lapic_x2apic_mode flag, when the x2APIC is present and should
+ * be used (see kernel header), or panics if a x2APIC is required but none
+ * is present. Also sets the HY_INFO_FLAG_X2APIC flag in the info tables
+ * when the x2APIC is used.
+ *
+ * As it is assumed that all CPUs either have or do not have an x2APIC
+ * this function should only be run once on the BSP before lapic_setup()
+ * is called.
+ */
+void lapic_detect(void);
 
 /**
  * Enables the CPU's LAPIC and configures it to reasonable defaults.
@@ -125,7 +141,7 @@ void lapic_setup(void);
  *
  * @return APIC id
  */
-uint8_t lapic_id(void);
+uint32_t lapic_id(void);
 
 /**
  * Signals an EOI to the CPU's LAPIC.
@@ -133,12 +149,15 @@ uint8_t lapic_id(void);
 void lapic_eoi(void);
 
 /**
- * Sends an IPI by writing the given <icr> value into the LAPIC's
- * Interrupt Control Register.
+ * Sends an IPI to the given destination and the lower DWORD of the ICR.
  *
- * @param icr the value to be written to the ICR
+ * In xAPIC mode, pass the physical or logical ID in the destination register
+ * without shifting it to bit 24.
+ *
+ * @param icr_low the lower DWORD for configuring the ICR for this IPI.
+ * @param destination the destination to send the IPI to.
  */
-void lapic_ipi(uint64_t icr);
+void lapic_ipi(uint32_t icr_low, uint32_t destination);
 
 /**
  * Updates the LAPIC's timer configuration.

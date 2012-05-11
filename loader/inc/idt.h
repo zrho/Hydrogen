@@ -73,6 +73,11 @@ typedef struct idt_entry {
 extern idt_entry_t idt_data[IDT_MAX];
 
 /**
+ * An ISR that just IRETQs.
+ */
+void idt_null_handler(void);
+
+/**
  * Loads an interrupt descriptor table, given its <address> and <length>.
  *
  * @param address virtual address of the IDT
@@ -89,6 +94,16 @@ void idt_load(uintptr_t address, size_t length);
  * @param dpl least privileged DPL at which the interrupt can be software triggered
  */
 void idt_intgate(idt_entry_t *entry, uintptr_t handler, uint16_t cs, uint8_t dpl);
+
+/**
+ * Sets up the IDT for the loader.
+ *
+ * Sets all entries to interrupt gates with a minimum DPL of 0x0, a code segment
+ * of 0x08 and the idt_null_handler as ISR, except for some fault handlers.
+ *
+ * Can be called multiply times to reset the IDT.
+ */
+void idt_setup_loader(void);
 
 /**
  * Sets up the IDT for the kernel.

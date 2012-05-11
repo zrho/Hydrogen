@@ -47,4 +47,7 @@ void pit_freq_set(uint16_t freq);
  */
 void pit_route(void);
 
-
+/**
+ * Masks the PIT interrupt in the IO APIC again.
+ */
+void pit_mask(void);

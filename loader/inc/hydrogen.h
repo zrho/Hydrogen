@@ -75,6 +75,9 @@
 /** Root Flag: The system has a 8259 PIC. */
 #define HY_INFO_FLAG_PCAT_COMPAT        (1 << 0)
 
+/** Root Flag: The LAPICs are in x2APIC mode. */
+#define HY_INFO_FLAG_X2APIC             (1 << 1)
+
 /** IRQ Flag: The IRQ's interrupt line is active low (default: active high). */
 #define HY_INFO_IRQ_FLAG_ACTIVE_LOW     (1 << 0)
 
@@ -118,13 +121,18 @@ typedef struct hy_info_root {
  * 
  * Without the HY_INFO_CPU_PRESENT flag being set, the CPU entry can be ignored.
  * 
- * Length: 8 bytes.
+ * Length: 21 bytes.
  */
 typedef struct hy_info_cpu {
-    uint8_t apic_id;            //< apic id of the CPU's LAPIC
-    uint8_t acpi_id;            //< acpi id of the CPU
+    uint32_t apic_id;           //< apic id of the CPU's LAPIC
+    uint32_t acpi_id;           //< acpi id of the CPU
     uint16_t flags;             //< CPU flags
     uint32_t lapic_timer_freq;  //< lapic timer ticks per second
+
+    uint32_t domain;            //< which NUMA domain the CPU belongs to
+    uint8_t chip;               //< number of chip in NUMA domain
+    uint8_t core;               //< number of core in chip
+    uint8_t cpu;                //< number of logical CPU in core (e.g. SMT)
 } __attribute__((packed)) hy_info_cpu_t;
 
 /**
@@ -178,10 +186,16 @@ typedef struct hy_info_module {
 //-----------------------------------------------------------------------------
 
 /** Root Flag: Instead of lowest priority delivery, route all GSIs to the BSP. */
-#define HY_HEADER_FLAG_IOAPIC_BSP    (1 << 0)
+#define HY_HEADER_FLAG_IOAPIC_BSP       (1 << 0)
+
+/** Root Flag: Switch to X2APIC mode, if available. */
+#define HY_HEADER_FLAG_X2APIC_ALLOW     (1 << 1)
+
+/** Root Flag: Require X2APIC support, fail otherwise. X2APIC_ALLOW must be set. */
+#define HY_HEADER_FLAG_X2APIC_REQUIRE   (1 << 2)
 
 /** IRQ Flag: The IRQ should be masked when the kernel is entered. */
-#define HY_HEADER_IRQ_FLAG_MASK      (1 << 0)
+#define HY_HEADER_IRQ_FLAG_MASK         (1 << 0)
 
 //-----------------------------------------------------------------------------
 // Kernel Header - Structures

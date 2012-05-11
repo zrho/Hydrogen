@@ -9,3 +9,4 @@ mouse: enabled=0
 cpu: count=4
 display_library: x, options="gui_debug"
 magic_break: enabled=1
+cpuid: apic=x2apic

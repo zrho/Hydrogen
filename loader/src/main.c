@@ -43,21 +43,6 @@
 
 volatile uint8_t main_entry_barrier = 1;
 
-uintptr_t main_fault_sp = 0;
-
-static void main_fault_pf(void)
-{
-    asm volatile ("cli");
-    SCREEN_PANIC("Page fault.");
-}
-
-static void main_fault_gp(void)
-{
-    asm volatile ("cli; mov %%rsp, %0" : "=a" (main_fault_sp));
-    //screen_write_hex(*((uint64_t *) main_fault_pf), 0, 4);
-    SCREEN_PANIC("General Protection fault.");
-}
-
 void main_bsp(void)
 {
     // Print header
@@ -67,10 +52,7 @@ void main_bsp(void)
 
     // Load the IDT
     idt_load((uintptr_t) &idt_data, IDT_LENGTH);
-    
-    // Write fault handler
-    idt_intgate(&idt_data[14], (uintptr_t) &main_fault_pf, 0x8, 0x0);
-    idt_intgate(&idt_data[13], (uintptr_t) &main_fault_gp, 0x8, 0x0);
+    idt_setup_loader();
 
     // Initialize Hydrogen info tables and analyze the system by parsing
     // info tables (such as ACPI and multiboot) and gathering information
@@ -91,6 +73,7 @@ void main_bsp(void)
     kernel_analyze();
 
     // Initialize interrupt controllers
+    lapic_detect();
     lapic_setup();
     ioapic_setup_loader();
     pic_setup();

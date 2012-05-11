@@ -4,6 +4,8 @@ PREFIX		:= ./build
 EMU			:= bochs
 EMUFLAGS	:= -q
 
+all: loader test image
+
 run: image
 	@ $(EMU) $(EMUFLAGS)
 	

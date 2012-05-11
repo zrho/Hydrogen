@@ -27,15 +27,40 @@
 #include <lapic.h>
 #include <stdint.h>
 
-uint32_t lapic_register_read(uint16_t index)
+#include <screen.h>
+
+#define LAPIC_X2APIC_MODE (0 != (HY_INFO_ROOT->flags & HY_INFO_FLAG_X2APIC))
+
+static uint64_t __msr_read(uint32_t msr)
 {
-    return *((uint32_t *) (index + HY_INFO_ROOT->lapic_paddr));
+    uint32_t a, d;
+    asm volatile ("rdmsr" : "=a" (a), "=d" (d) : "c" (msr));
+
+    return (((uint64_t) d) << 32) | a;
 }
 
-uint32_t lapic_register_write(uint16_t index, uint32_t value)
+static void __msr_write(uint32_t msr, uint64_t value)
 {
-    uint32_t *reg = (uint32_t *) (index + HY_INFO_ROOT->lapic_paddr);
-    uint32_t old = *reg;
-    *reg = value;
-    return old;
+    uint32_t a = value;
+    uint32_t d = (value >> 32);
+
+    asm volatile ("wrmsr" :: "c" (msr), "a" (a), "d" (d));
+}
+
+uint32_t lapic_register_read(uint16_t index)
+{
+    if (!LAPIC_X2APIC_MODE) {
+        return *((uint32_t *) (index * 0x10 + HY_INFO_ROOT->lapic_paddr));
+    } else {
+        return __msr_read(LAPIC_MSR_REGS + index);
+    }
+}
+
+void lapic_register_write(uint16_t index, uint32_t value)
+{
+    if (!LAPIC_X2APIC_MODE) {
+        *((uint32_t *) (index * 0x10 + HY_INFO_ROOT->lapic_paddr)) = value;
+    } else {
+        __msr_write(LAPIC_MSR_REGS + index, value);
+    }
 }
