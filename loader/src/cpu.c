@@ -24,14 +24,31 @@
  */
 
 #include <cpu.h>
-#include <kernel.h>
 #include <stdint.h>
-#include <syscall.h>
 
-void syscall_init(void)
+uint64_t cpu_msr_read(uint32_t msr)
 {
-    cpu_msr_write(SYSCALL_MSR_STAR, SYSCALL_STAR);
-    cpu_msr_write(SYSCALL_MSR_SFMASK, SYSCALL_SFMASK);
-    cpu_msr_write(SYSCALL_MSR_CSTAR, 0);
-    cpu_msr_write(SYSCALL_MSR_LSTAR, kernel_header->syscall_entry);
+    uint32_t a, d;
+    asm volatile ("rdmsr" : "=a" (a), "=d" (d) : "c" (msr));
+
+    return (((uint64_t) d) << 32) | a;
+}
+
+void cpu_msr_write(uint32_t msr, uint64_t value)
+{
+    uint32_t a = value;
+    uint32_t d = (value >> 32);
+
+    asm volatile ("wrmsr" :: "c" (msr), "a" (a), "d" (d));
+}
+
+void cpu_cpuid(uint32_t code, cpu_cpuid_result_t *result)
+{
+    asm volatile (
+            "cpuid" :
+            "=a" (result->a),
+            "=b" (result->b),
+            "=c" (result->c),
+            "=d" (result->d) :
+            "a" (code));
 }

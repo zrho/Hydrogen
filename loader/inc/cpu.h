@@ -23,15 +23,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <cpu.h>
-#include <kernel.h>
+#pragma once
 #include <stdint.h>
-#include <syscall.h>
 
-void syscall_init(void)
-{
-    cpu_msr_write(SYSCALL_MSR_STAR, SYSCALL_STAR);
-    cpu_msr_write(SYSCALL_MSR_SFMASK, SYSCALL_SFMASK);
-    cpu_msr_write(SYSCALL_MSR_CSTAR, 0);
-    cpu_msr_write(SYSCALL_MSR_LSTAR, kernel_header->syscall_entry);
-}
+/**
+ * Result of a call to the CPUID instruction. Stores the value of the four
+ * general purpose registers eax, ebx, ecx and edx after invocation.
+ */
+typedef struct cpu_cpuid_result {
+    uint32_t a;
+    uint32_t b;
+    uint32_t c;
+    uint32_t d;
+} cpu_cpuid_result_t;
+
+/**
+ * Reads the value of a MSR.
+ *
+ * @param msr the index of the MSR to read.
+ */
+uint64_t cpu_msr_read(uint32_t msr);
+
+/**
+ * Writes a value to a MSR.
+ *
+ * @param msr the index of the MSR to write to.
+ * @param value the value to write to the MSR.
+ */
+void cpu_msr_write(uint32_t msr, uint64_t value);
+
+/**
+ * Invokes the CPUID instruction for the given code and returns
+ * the result in the <result> parameter.
+ *
+ * @param code the CPUID code (in EAX).
+ * @param result output parameter for CPUID result
+ */
+void cpu_cpuid(uint32_t code, cpu_cpuid_result_t *result);
