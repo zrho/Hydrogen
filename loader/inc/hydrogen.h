@@ -55,12 +55,14 @@
 // Info Table - Memory Structure
 //-----------------------------------------------------------------------------
 
-#define HY_INFO_ROOT            ((hy_info_root_t *) 0x10B000)
-#define HY_INFO_CPU             ((hy_info_cpu_t *) 0x10C000)
-#define HY_INFO_IOAPIC          ((hy_info_ioapic_t *) 0x10D000)
-#define HY_INFO_MMAP            ((hy_info_mmap_t *) 0x10E000)
-#define HY_INFO_MODULE          ((hy_info_module_t *) 0x10F000)
-#define HY_INFO_STRING          ((char *) 0x110000)
+#define HY_INFO_OFFSET(name)    ((uintptr_t) (0x14C000 + HY_INFO_ROOT-> name ## _offset))
+
+#define HY_INFO_ROOT            ((hy_info_root_t *) 0x14C000)
+#define HY_INFO_CPU             ((hy_info_cpu_t *) HY_INFO_OFFSET(cpu))
+#define HY_INFO_IOAPIC          ((hy_info_ioapic_t *) HY_INFO_OFFSET(ioapic))
+#define HY_INFO_MMAP            ((hy_info_mmap_t *) HY_INFO_OFFSET(mmap))
+#define HY_INFO_MODULE          ((hy_info_module_t *) HY_INFO_OFFSET(module))
+#define HY_INFO_STRING          ((char *) HY_INFO_OFFSET(string))
 
 //-----------------------------------------------------------------------------
 // Info Table - Flags
@@ -95,7 +97,8 @@ typedef struct hy_info_root {
     
     uint32_t magic;             //< a magic number (HY_MAGIC)
     uint32_t flags;             //< flags
-    
+    uint16_t length;            //< length of the info tables
+
     uint64_t lapic_paddr;       //< physical address of the LAPIC MMIO window
     uint64_t rsdp_paddr;        //< physical address of the RSDP (ACPI)
     
@@ -108,6 +111,12 @@ typedef struct hy_info_root {
     uint32_t irq_gsi[16];       //< map of ISR IRQ numbers to GSI numbers
     uint8_t irq_flags[16];      //< flags regarding the IRQs
     
+    uint16_t cpu_offset;        //< offset of the CPU table
+    uint16_t ioapic_offset;     //< offset of the IO APIC table
+    uint16_t mmap_offset;       //< offset of the MMAP table
+    uint16_t module_offset;     //< offset of the module table
+    uint16_t string_offset;     //< offset of the string table
+
     uint16_t cpu_count_active;  //< number of active CPUs in the system
     uint16_t cpu_count;         //< number of entries in the CPU table
     uint16_t ioapic_count;      //< number of IO APICs
@@ -121,18 +130,14 @@ typedef struct hy_info_root {
  * 
  * Without the HY_INFO_CPU_PRESENT flag being set, the CPU entry can be ignored.
  * 
- * Length: 21 bytes.
+ * Length: 17 bytes.
  */
 typedef struct hy_info_cpu {
     uint32_t apic_id;           //< apic id of the CPU's LAPIC
     uint32_t acpi_id;           //< acpi id of the CPU
     uint16_t flags;             //< CPU flags
     uint32_t lapic_timer_freq;  //< lapic timer ticks per second
-
     uint32_t domain;            //< which NUMA domain the CPU belongs to
-    uint8_t chip;               //< number of chip in NUMA domain
-    uint8_t core;               //< number of core in chip
-    uint8_t cpu;                //< number of logical CPU in core (e.g. SMT)
 } __attribute__((packed)) hy_info_cpu_t;
 
 /**

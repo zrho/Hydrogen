@@ -31,14 +31,13 @@
 #include <string.h>
 
 extern uint8_t info_root_data INFO_SECTION;
-extern uint8_t info_cpu_data INFO_SECTION;
-extern uint8_t info_ioapic_data INFO_SECTION;
 extern uint8_t info_mmap_data INFO_SECTION;
 extern uint8_t info_module_data INFO_SECTION;
+extern uint8_t info_ioapic_data INFO_SECTION;
 extern uint8_t info_strings_data INFO_SECTION;
 
 hy_info_root_t *info_root = (hy_info_root_t *) &info_root_data;
-hy_info_cpu_t *info_cpu = (hy_info_cpu_t *) &info_cpu_data;
+hy_info_cpu_t *info_cpu = 0;
 hy_info_ioapic_t *info_ioapic = (hy_info_ioapic_t *) &info_ioapic_data;
 hy_info_mmap_t *info_mmap = (hy_info_mmap_t *) &info_mmap_data;
 hy_info_module_t *info_module = (hy_info_module_t *) &info_module_data;
@@ -50,9 +49,15 @@ uint32_t info_string_space = 0x1000;
 void info_init(void)
 {
     info_root->magic = HY_MAGIC;
+    info_root->length = 0x5000;
     
     info_root->idt_paddr = (uintptr_t) &idt_data;
     info_root->gdt_paddr = (uintptr_t) &gdt_data;
+
+    info_root->mmap_offset = ((uintptr_t) info_mmap - (uintptr_t) info_root);
+    info_root->module_offset = ((uintptr_t) info_module - (uintptr_t) info_root);
+    info_root->string_offset = ((uintptr_t) info_strings - (uintptr_t) info_root);
+    info_root->ioapic_offset = ((uintptr_t) info_ioapic - (uintptr_t) info_root);
 
     size_t i;
     for (i = 0; i < 16; ++i) {

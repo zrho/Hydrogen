@@ -54,17 +54,16 @@ void main_bsp(void)
     idt_load((uintptr_t) &idt_data, IDT_LENGTH);
     idt_setup_loader();
 
-    // Initialize Hydrogen info tables and analyze the system by parsing
-    // info tables (such as ACPI and multiboot) and gathering information
-    // from other sources (like IOAPIC MMIO etc.)
+    // Initialize Hydrogen info tables and parse the multiboot tables
     info_init();
-
-    acpi_parse();
     multiboot_parse();
-    ioapic_analyze();
 
     // Setup the heap
     heap_init();
+
+    // Now parse the ACPI tables and analyze the IO APICs
+    acpi_parse();
+    ioapic_analyze();
 
     // Find, check and load the kernel binary
     kernel_find();

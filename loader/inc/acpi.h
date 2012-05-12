@@ -100,12 +100,13 @@ typedef struct acpi_sdt_header {
 #define ACPI_MADT_TYPE_LAPIC            0
 #define ACPI_MADT_TYPE_IOAPIC           1
 #define ACPI_MADT_TYPE_ISO              2
+#define ACPI_MADT_TYPE_X2LAPIC          9
 
 /**
  * The Multiple APIC Description Table contains information about the interrupt
  * controllers installed to the system (such as LAPICs and IO APICs).
  *
- * This structure is followed by a variably sized list of APIC devices.
+ * This structure is followed by a variable sized list of APIC devices.
  */
 typedef struct acpi_madt {
     acpi_sdt_header_t header;
@@ -134,6 +135,18 @@ typedef struct acpi_madt_lapic {
 } __attribute__((packed)) acpi_madt_lapic_t;
 
 /**
+ * MADT entry describing an X2APIC LAPIC and its associated processor.
+ */
+typedef struct apci_madt_x2lapic {
+    acpi_madt_entry_t header;
+
+    uint16_t reserved;
+    uint32_t x2apic_id;
+    uint32_t flags;
+    uint32_t acpi_id;
+} __attribute__((packed)) acpi_madt_x2lapic_t;
+
+/**
  * MADT entry describing an I/O APIC.
  */
 typedef struct acpi_madt_ioapic {
@@ -158,6 +171,83 @@ typedef struct acpi_madt_iso {
     uint32_t gsi;
     uint16_t flags;
 } __attribute__((packed)) acpi_madt_iso_t;
+
+/**
+ * Flag in the LAPIC and x2LAPIC SRAT entries that indicates that the entry is
+ * enabled and should be parsed. If this flag is clear, the entry must be ignored.
+ */
+#define ACPI_SRAT_LAPIC_ENABLED     (1 << 0)
+
+// SRAT entry types.
+#define ACPI_SRAT_TYPE_LAPIC        0
+#define ACPI_SRAT_TYPE_MEMORY       1
+#define ACPI_SRAT_TYPE_X2LAPIC      2
+
+/**
+ * The System Resource Affinity Table maps the system's CPUs to the NUMA domains
+ * and the domains to the memory regions that are associated with them.
+ *
+ * This structure is followed by a variable sized list of entries.
+ */
+typedef struct acpi_srat {
+    acpi_sdt_header_t header;
+
+    uint32_t reserved0;
+    uint64_t reserved1;
+} __attribute__((packed)) acpi_srat_t;
+
+/**
+ * Header of an entry in the SRAT.
+ */
+typedef struct acpi_srat_entry {
+    uint8_t type;
+    uint8_t length;
+} __attribute__((packed)) acpi_srat_entry_t;
+
+/**
+ * SRAT table entry that associates a CPU's LAPIC to a NUMA domain.
+ */
+typedef struct acpi_srat_lapic {
+    acpi_srat_entry_t header;
+
+    uint8_t domain_low;
+    uint8_t apic_id;
+    uint32_t flags;
+    uint8_t sapic_eid;
+    uint8_t domain_high[3];
+    uint32_t clock_domain;
+} __attribute__((packed)) acpi_srat_lapic_t;
+
+/**
+ * SRAT table entry that associates a CPU's x2LAPIC to a NUMA domain.
+ */
+typedef struct acpi_srat_x2lapic {
+    acpi_srat_entry_t header;
+
+    uint16_t reserved0;
+    uint32_t domain;
+    uint32_t x2apic_id;
+    uint32_t flags;
+    uint32_t clock_domain;
+    uint32_t reserved1;
+} __attribute__((packed)) acpi_srat_x2lapic_t;
+
+/**
+ * SRAT table entry that associates a memory range to a NUMA domain.
+ */
+typedef struct acpi_srat_memory {
+    acpi_srat_entry_t header;
+
+    uint32_t domain;
+    uint16_t reserved0;
+    uint32_t base_low;
+    uint32_t base_high;
+    uint32_t length_low;
+    uint32_t length_high;
+    uint32_t reserved1;
+    uint32_t flags;
+    uint64_t reserved2;
+} __attribute__((packed)) acpi_srat_memory_t;
 
 /**
  * Searches for the RSDP on a 16 byte boundary, given a memory region to

@@ -24,26 +24,44 @@
  */
 
 #include <acpi.h>
+#include <heap.h>
 #include <hydrogen.h>
 #include <info.h>
 #include <screen.h>
 #include <stdint.h>
 #include <string.h>
 
-static void acpi_parse_madt_lapic(acpi_madt_lapic_t *entry)
+acpi_madt_t *acpi_madt = 0;
+acpi_srat_t *acpi_srat = 0;
+
+static void acpi_add_cpu(uint32_t apic_id, uint32_t acpi_id, uint32_t flags)
 {
-    hy_info_cpu_t *cpu = &info_cpu[entry->apic_id];
+    hy_info_cpu_t *cpu = &info_cpu[apic_id];
 
-    cpu->acpi_id = entry->acpi_id;
-    cpu->apic_id = entry->apic_id;
-    cpu->flags = HY_INFO_CPU_FLAG_PRESENT;
+    cpu->acpi_id = acpi_id;
+    cpu->apic_id = apic_id;
+    cpu->flags |= 0;
+    cpu->domain = 0;
 
-    ++info_root->cpu_count_active;
+    if (0 != (flags & ACPI_MADT_LAPIC_ENABLED)) {
+        cpu->flags |= HY_INFO_CPU_FLAG_PRESENT;
+        ++info_root->cpu_count_active;
+    }
 
-    size_t new_count = entry->apic_id + 1;
+    size_t new_count = apic_id + 1;
     if (info_root->cpu_count < new_count) {
         info_root->cpu_count = new_count;
     }
+}
+
+static void acpi_parse_madt_x2lapic(acpi_madt_x2lapic_t *entry)
+{
+    acpi_add_cpu(entry->x2apic_id, entry->acpi_id, entry->flags);
+}
+
+static void acpi_parse_madt_lapic(acpi_madt_lapic_t *entry)
+{
+    acpi_add_cpu(entry->apic_id, entry->acpi_id, entry->flags);
 }
 
 static void acpi_parse_madt_ioapic(acpi_madt_ioapic_t *entry)
@@ -86,12 +104,19 @@ static void acpi_parse_madt(acpi_madt_t *madt)
     acpi_madt_entry_t *entry = (acpi_madt_entry_t *) ((uintptr_t) madt + sizeof (acpi_madt_t));
     size_t size_left = madt->header.length - sizeof (acpi_madt_t);
 
+    info_root->cpu_offset = heap_top - (uintptr_t) info_root;
+    info_cpu = (hy_info_cpu_t *) heap_top;
+
     while (size_left > 0) {
         size_left -= entry->length;
 
         switch (entry->type) {
         case ACPI_MADT_TYPE_LAPIC:
             acpi_parse_madt_lapic((acpi_madt_lapic_t *) entry);
+            break;
+
+        case ACPI_MADT_TYPE_X2LAPIC:
+            acpi_parse_madt_x2lapic((acpi_madt_x2lapic_t *) entry);
             break;
 
         case ACPI_MADT_TYPE_IOAPIC:
@@ -105,6 +130,50 @@ static void acpi_parse_madt(acpi_madt_t *madt)
 
         entry = (acpi_madt_entry_t *) ((uintptr_t) entry + entry->length);
     }
+
+    size_t cpu_length = sizeof(hy_info_cpu_t) * info_root->cpu_count;
+    cpu_length = (cpu_length + 0xFFF) & ~0xFFF;
+    heap_top += cpu_length;
+    info_root->length += cpu_length;
+}
+
+static void acpi_parse_srat_lapic(acpi_srat_lapic_t *entry)
+{
+    if (0 == (entry->flags & ACPI_SRAT_LAPIC_ENABLED))
+        return;
+
+    uint32_t domain = entry->domain_low;
+    domain |= entry->domain_high[0] << 8;
+    domain |= entry->domain_high[1] << 16;
+    domain |= entry->domain_high[2] << 24;
+
+    info_cpu[entry->apic_id].domain = domain;
+}
+
+static void acpi_parse_srat_x2lapic(acpi_srat_x2lapic_t *entry)
+{
+    if (0 == (entry->flags & ACPI_SRAT_LAPIC_ENABLED))
+        return;
+
+    info_cpu[entry->x2apic_id].domain = entry->domain;
+}
+
+static void acpi_parse_srat(acpi_srat_t *srat)
+{
+    acpi_srat_entry_t *entry = (acpi_srat_entry_t *) ((uintptr_t) srat + sizeof(acpi_srat_t));
+    size_t length_remaining = srat->header.length - sizeof(acpi_srat_t);
+
+    while (length_remaining > 0) {
+        switch (entry->type) {
+        case ACPI_SRAT_TYPE_LAPIC:
+            acpi_parse_srat_lapic((acpi_srat_lapic_t *) entry);
+            break;
+
+        case ACPI_SRAT_TYPE_X2LAPIC:
+            acpi_parse_srat_x2lapic((acpi_srat_x2lapic_t *) entry);
+            break;
+        }
+    }
 }
 
 static void acpi_parse_table(acpi_sdt_header_t *table)
@@ -115,7 +184,9 @@ static void acpi_parse_table(acpi_sdt_header_t *table)
     if (memcmp(&table->signature, "MADT", 4) ||
             memcmp(&table->signature, "APIC", 4)) {
 
-        acpi_parse_madt((acpi_madt_t *) table);
+        acpi_madt = (acpi_madt_t *) table;
+    } else if (memcmp(&table->signature, "SRAT", 4)) {
+        acpi_srat = (acpi_srat_t *) table;
     }
 }
 
@@ -168,6 +239,16 @@ void acpi_parse(void)
 
     info_root->rsdp_paddr = (uintptr_t) rsdp;
     acpi_parse_rsdp(rsdp);
+
+    if (0 == acpi_madt) {
+        SCREEN_PANIC("No MADT ACPI table found.");
+    }
+
+    acpi_parse_madt(acpi_madt);
+
+    if (0 != acpi_srat) {
+        acpi_parse_srat(acpi_srat);
+    }
 
     if (0 == info_root->cpu_count) {
         SCREEN_PANIC("No CPU information in ACPI tables.");

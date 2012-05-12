@@ -35,18 +35,23 @@ structures begin on 0x108000:
 0x108000-0x109000: The Interrupt Descriptor Table (256 entries, 16 bytes each).<br />
 0x109000-0x10A000: The Global Descriptor Table (256 entries, 16 bytes each).<br />
 0x10A000-0x10B000: The boot Page Model Level 4 (PML4).<br />
-0x10B000-0x10C000: The root info table (hy_info_root_t).<br />
-0x10C000-0x10D000: The CPU info table (hy_info_cpu_t).<br />
-0x10D000-0x10E000: The IO APIC info table (hy_info_ioapic_t).<br />
-0x10E000-0x10F000: The memory map info table (hy_info_mmap_t).<br />
-0x10F000-0x110000: The module info table (hy_info_module_t).<br />
-0x110000-0x111000: The string table.<br />
-0x111000-0x112000: The PDP for identity mapping.<br />
-0x112000-0x152000: The 64 PDs for identity mapping.<br />
+0x10B000-0x10C000: The PDP for identity mapping.<br />
+0x10C000-0x14C000: The 64 PDs for identity mapping.<br />
+0x14C000-0x14D000: The root info table (hy_info_root_t).<br />
+0x14D000-0x14E000: The memory map info table (hy_info_mmap_t).<br />
+0x14E000-0x14F000: The module info table (hy_info_module_t).<br />
+0x14F000-0x150000: The IO APIC info table (hy_info_ioapic_t).<br />
+0x150000-0x151000: The string table.<br />
+0x151000-  ...   : The CPU info table (hy_info_cpu_t).<br />
 
-After 0x152000 Hydrogen places dynamically allocated structures, such as the
-kernel code, the data loaded from the binary and the paging structures for mapping
-the kernel and the multiboot modules.
+The size of the CPU info table depends on the number of CPUs that are installed
+into the system. Although the placement of the info structures is static (in this
+version), use the offset fields in the root info table (see §5.1) to access the
+other tables.
+
+After the info tables Hydrogen places other dynamically allocated structures, such
+as the kernel code, the data loaded from the binary and the paging structures for
+mapping the kernel and the multiboot modules.
 
 The free_paddr field in the root info table contains the first freely usable
 address after this block of memory. The remaining physical memory (except when
@@ -138,11 +143,13 @@ The info tables are located at fixed physical addresses, as described in §2, an
 may be mapped to an address in virtual memory, as described in §6.2.
 
 ### §5.1 Root Info Table
-The first info structure is the root table (hy_info_root_t). It contains some
-general information about the system, like the physical addresses of discovered
-data structures (such as the RSDP or the LAPIC MMIO region) or IRQ properties
-and mappings. Additionally, it specifies the length of the CPU, the IO APIC,
-the memory map and the module info tables.
+The first info structure is the root table (hy_info_root_t). It contains the
+length of the info tables as well as the offsets to the various sub-tables and
+the number of entries in each table.
+
+In addition it provides some general information about the system, like the
+physical addresses of discovered data structures (such as the RSDP or the LAPIC
+MMIO region) or IRQ properties and mappings.
 
 ### §5.2 CPU Info Table
 The CPU info table is a map of CPU structures (hy_info_cpu_t) to their APIC id.
@@ -152,13 +159,8 @@ cpu_count field of the root info table contains the length of this table
 including non-present entries, the cpu_count_active field contains the number
 of present entries in this table. For each CPU the APIC id and the ACPI id
 is specified in additional to some flags and the frequency of ticks in the
-CPU's LAPIC timer (in Hz for an divisor of 1).
-
-Additionally topology information is given for each CPU: The NUMA domain
-(system locality) the CPU belongs to, the number of the chip in the domain,
-the number of the core in the chip and the number of the logical CPU in the
-core (see Simultaneous Multithreading or Intel's Hyperthreading). As of this
-release (0.2.1b), these fields are cleared to zero.
+CPU's LAPIC timer (in Hz for an divisor of 1). Additionally the id of the
+NUMA domain the CPU belongs to is given.
 
 ### §5.3 IO APIC Info Table
 The IO APIC info table is a list of IO APIC structures (hy_info_ioapic_t).

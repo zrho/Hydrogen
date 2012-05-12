@@ -84,7 +84,10 @@ static char *build_cpu(char *buffer)
         BNUM(cpu->acpi_id);
         BSTR("\nLAPIC Timer Freq.: ");
         BNUM(cpu->lapic_timer_freq);
-        BSTR(" Hz\n\n");
+        BSTR(" Hz");
+        BSTR("\nNUMA domain:       ");
+        BNUM(cpu->domain);
+        BSTR("\n\n");
     }
 
     return buffer;
