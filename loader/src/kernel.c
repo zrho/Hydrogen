@@ -107,7 +107,7 @@ void kernel_map_info(void)
     size_t length = info_root->length;
     size_t offset;
 
-    uintptr_t physical = (uintptr_t) &info_root;
+    uintptr_t physical = (uintptr_t) info_root;
     uintptr_t virtual = kernel_header->info_vaddr;
 
     for (offset = 0; offset < length; offset += 0x1000) {
