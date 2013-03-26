@@ -228,6 +228,8 @@ typedef struct hy_header_root {
 
     uint64_t stack_vaddr;       //< virtual address for the stack (or null)
     uint64_t info_vaddr;        //< virtual address for the info tables (or null)
+    uint64_t idt_vaddr;         //< virtual address for the IDT (or null)
+    uint64_t gdt_vaddr;         //< virtual address for the GDT (or null)
 
     uint64_t ap_entry;          //< entry point for APs (or null)
     uint64_t syscall_entry;     //< entry point for syscalls (or null)

@@ -30,6 +30,8 @@
 #include <screen.h>
 #include <stdint.h>
 
+uintptr_t idt_address = (uintptr_t) &idt_data;
+
 static void idt_fault_pf(void)
 {
     asm volatile ("cli");
@@ -70,6 +72,9 @@ void idt_setup_loader(void)
     for (i = 0; i < IDT_MAX; ++i) {
         idt_intgate(&idt_data[i], (uintptr_t) &idt_null_handler, 0x8, 0x0);
     }
+    
+    idt_intgate(&idt_data[14], (uintptr_t) &idt_fault_pf, 0x8, 0x0);
+    idt_intgate(&idt_data[13], (uintptr_t) &idt_fault_gp, 0x8, 0x0);
 }
 
 void idt_setup_kernel(void)
@@ -82,7 +87,4 @@ void idt_setup_kernel(void)
         uint64_t handler = (present ? table[i] : 0);
         idt_intgate(&idt_data[i], handler, 0x8, 0x0);
     }
-
-    idt_intgate(&idt_data[14], (uintptr_t) &idt_fault_pf, 0x8, 0x0);
-    idt_intgate(&idt_data[13], (uintptr_t) &idt_fault_gp, 0x8, 0x0);
 }

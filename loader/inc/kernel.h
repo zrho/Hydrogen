@@ -71,6 +71,16 @@ void kernel_map_stack(void);
 void kernel_map_info(void);
 
 /**
+ * Maps and reloads the IDT.
+ */
+void kernel_map_idt(void);
+
+/**
+ * Maps and reloads the GDT.
+ */
+void kernel_map_gdt(void);
+
+/**
  * Jumps to the kernel's BSP entry point
  */
 void kernel_enter_bsp(void);

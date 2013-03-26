@@ -73,6 +73,11 @@ typedef struct idt_entry {
 extern idt_entry_t idt_data[IDT_MAX];
 
 /**
+ * The address of the IDT to use.
+ */
+extern uintptr_t idt_address;
+
+/**
  * An ISR that just IRETQs.
  */
 void idt_null_handler(void);

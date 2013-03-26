@@ -32,6 +32,8 @@
 #include <screen.h>
 #include <stdint.h>
 #include <string.h>
+#include <idt.h>
+#include <gdt.h>
 
 void *kernel_binary = 0;
 hy_header_root_t *kernel_header = 0;
@@ -113,6 +115,36 @@ void kernel_map_info(void)
     for (offset = 0; offset < length; offset += 0x1000) {
         page_map(physical + offset, virtual + offset, PAGE_FLAG_WRITABLE | PAGE_FLAG_GLOBAL);
     }
+}
+
+void kernel_map_idt(void)
+{
+    if (0 == kernel_header->idt_vaddr)
+        return;
+        
+    uintptr_t phys = (uintptr_t) &idt_data;
+
+    page_map(
+        phys,
+        kernel_header->idt_vaddr,
+        PAGE_FLAG_WRITABLE | PAGE_FLAG_GLOBAL);
+        
+    idt_address = kernel_header->idt_vaddr;
+}
+
+void kernel_map_gdt(void)
+{
+    if (0 == kernel_header->gdt_vaddr)
+        return;
+        
+    uintptr_t phys = gdt_pointer.address;
+
+    page_map(
+        phys,
+        kernel_header->gdt_vaddr,
+        PAGE_FLAG_WRITABLE | PAGE_FLAG_GLOBAL);    
+ 
+    gdt_pointer.address = kernel_header->gdt_vaddr;
 }
 
 extern void kernel_enter(uintptr_t address);

@@ -65,10 +65,10 @@ PDP and the 64 PDs for that mapping are located in physical memory as described
 in §2.
 
 The kernel is mapped to the addresses given in its ELF64 binary. Additionally the
-kernel can specify locations in virtual memory to map the stacks and the info
-structures to (see §6). All of these, the kernel binary, the stacks or the info,
-must not be mapped into low memory to avoid potential interference with identity
-mappings.
+kernel can specify locations in virtual memory to map the stacks, the info
+structures and the IDT/GDT to (see §6). All of these, the kernel binary, the stacks
+the info, and the IDT/GDT must not be explicitly mapped into low memory to avoid
+potential interference with identity mappings.
 
 §4 CPU and System State
 ----------------------------------------------------------------------------------
@@ -85,7 +85,9 @@ The Interrupt Descriptor Table is loaded when the kernel is entered with a size
 of 256 entries (4kiB). Its entries are configured as interrupt gates with a
 minimum DPL of 0x0 and a code segment of 0x8, i.e. kernel code (see §4.3). When
 a ISR entry table is specified in the kernel header (see §6.5) the ISR addresses
-for the entries are set accordingly; otherwise they are cleared to zero.
+for the entries are set accordingly; otherwise they are cleared to zero. When
+a virtual address for the IDT is specified (see §6.9), the IDT is mapped to and
+reloaded from that position.
 
 ### §4.3 Global Descriptor Table
 The global descriptor table is loaded when the kernel is entered with a size
@@ -98,6 +100,9 @@ as follows:
 0x10: Kernel Data (DPL 0)<br />
 0x18: User Code (DPL 3)<br />
 0x20: User Data (DPL 3)<br />
+
+When a virtual address for the GDT is specified (see §6.9), the GDT is mapped to
+and reloaded from that position.
 
 ### §4.4 Syscall MSRs
 The syscall related MSRs are configured as follows: The STAR register specifies
@@ -246,6 +251,13 @@ Using the HY_HEADER_FLAG_X2APIC_ALLOW the kernel supports x2APIC mode and
 Hydrogen will enable it on all LAPICs, if it is supported by the system. If
 both HY_HEADER_FLAG_X2APIC_ALLOW and HY_HEADER_FLAG_X2APIC_REQUIRE are set,
 Hydrogen will panic, if x2APIC mode is not supported on the system.
+
+### §6.9 IDT and GDT Mapping
+The kernel header can specify a virtual address for mapping the IDT/GDT into
+virtual memory. When a virtual address (non-null) is specified, the IDT/GDT will be
+mapped to the 4kB right after the given address and will be reloaded on all CPUs
+from that address. Otherwise the IDT/GDT will is still accessible using the identity
+mapping and is loaded from that address.
 
 §7 System Requirements
 ----------------------------------------------------------------------------------

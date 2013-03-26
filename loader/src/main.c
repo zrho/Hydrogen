@@ -51,7 +51,7 @@ void main_bsp(void)
     screen_write("-------------------------------------------------", 0, 2);
 
     // Load the IDT
-    idt_load((uintptr_t) &idt_data, IDT_LENGTH);
+    idt_load(idt_address, IDT_LENGTH);
     idt_setup_loader();
 
     // Initialize Hydrogen info tables and parse the multiboot tables
@@ -91,9 +91,11 @@ void main_bsp(void)
     // Setup fast syscall support
     syscall_init();
 
-    // Setup info and stack mapping
+    // Setup mapping
     kernel_map_info();
     kernel_map_stack();
+    kernel_map_idt();
+    kernel_map_gdt();
 
     // Set free address
     info_root->free_paddr = (heap_top + 0xFFF) & ~0xFFF;

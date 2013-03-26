@@ -36,6 +36,8 @@ hy_header_root_t hydrogen_header = {
         FLAGS,                                  // flags
         0xFFFFFF0000200000,                     // stack_vaddr
         0xFFFFFF0000100000,                     // info_vaddr
+        0,                                      // idt_vaddr
+        0,                                      // gdt_vaddr
         0,                                      // ap_entry
         0,                                      // syscall_entry
         (uintptr_t) &isr_gates,                 // isr_entry_table
