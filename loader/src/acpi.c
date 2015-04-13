@@ -167,10 +167,24 @@ static void acpi_parse_srat(acpi_srat_t *srat)
         switch (entry->type) {
         case ACPI_SRAT_TYPE_LAPIC:
             acpi_parse_srat_lapic((acpi_srat_lapic_t *) entry);
+
+            length_remaining -= sizeof(acpi_srat_lapic_t);
+            entry = (acpi_srat_entry_t *)((char *)entry + sizeof(acpi_srat_lapic_t));
+
+            break;
+
+        case ACPI_SRAT_TYPE_MEMORY:
+            // No clue what to do with this.
+
+            length_remaining -= sizeof(acpi_srat_memory_t);
+            entry = (acpi_srat_entry_t *)((char *)entry + sizeof(acpi_srat_memory_t));
             break;
 
         case ACPI_SRAT_TYPE_X2LAPIC:
             acpi_parse_srat_x2lapic((acpi_srat_x2lapic_t *) entry);
+
+            length_remaining -= sizeof(acpi_srat_x2lapic_t);
+            entry = (acpi_srat_entry_t *)((char *)entry + sizeof(acpi_srat_x2lapic_t));
             break;
         }
     }
